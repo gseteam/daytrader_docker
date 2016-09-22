@@ -1,7 +1,7 @@
 FROM openjdk:7
 
 RUN mkdir /opt/work
-ADD geronimo-tomcat7-javaee6-3.0.1.tar /opt/work
+ADD geronimo-tomcat7-javaee6-3.0.1.tar.gz /opt/work
 
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh

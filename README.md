@@ -1,71 +1,88 @@
-GSE Dashboard
+DayTrader - Dockerized
 
-GSE Dashboard is a people-to-task tracking tool written in Django. It has been written to work with:
-  - Embedded database - SQLite3
+DayTrader is benchmark application built around the paradigm of an online stock trading system.
+Originally developed by IBM as the Trade Performance Benchmark Sample, DayTrader was donated to
+the Apache Geronimo community in 2005. This application allows users to login, view their portfolio,
+lookup stock quotes, and buy or sell stock shares. With the aid of a Web-based load driver such as
+HPE LoadRunner, Rational Performance Tester, or Apache JMeter, the real-world workload provided by
+DayTrader can be used to measure and compare the performance of Java Platform, Enterprise Edition
+(Java EE) application servers offered by a variety of vendors.
+
+In addition to the full workload, the application also contains a set of primitives used for functional
+and performance testing of various Java EE components and common design patterns.
+
+For more detailed information on Daytrader please refer to - http://geronimo.apache.org/GMOxDOC22/daytrader-a-more-complex-application.html
+
+The goal of this project is to dockerize the Daytrader three-tier application. The component containers are:
   - MySQL
+  - Geronimo application server
+  - Apache webserver
 
-You can track:
-  - Active/Inactive tasks
-  - People associated with the task
-  - People over or under-utilized
+You can optionally also have multiple web server containers sitting behind a load balancer (ha-proxy).
+For now, this is beyond the scope of the current release.
 
 ### Version
 1.0
 
 ### Build
-The first thing you have to do once you download the repository is to build the Docker container for the application. From the root directory of the repository run:
+The first thing we need to do is to build the application and web tier of the application. For the DB tier,
+we will use the standard MySQL image that can be found at http://hub.docker.com.
+
+#### Web Layer
 ```sh
-$ docker build -t my-django-app .
+$ cd web/
+$ docker build -t geronimo_web .
 ```
 
-### Start App with SQLite DB
-Start the my-django-app server with empty SQLite3 database. Here the SQLite DB exists only for the duration that the container is alive.
+#### Application Layer
+
 ```sh
-$ docker run -P -d my-django-app
+$ cd appserver/
+$ docker build -t geronimo_app .
 ```
 
-Start the my-django-app server with empty SQLite3 database. This time, mount a host directory to the container DB directory.
-The SQLite DB file created (and modified) will remain even after the container is killed/removed.
+### Running the Daytrader application
+
+Running the Daytrader application is basically three steps:
+  - Run the MySQL container
+  - Run the Geronimo application container. Provide the MySQL IP and PORT as input when starting the container.
+  - Run the Web server. Provide the Geronimo application server IP and PORT as input when starting the container.
+
+#### Starting the MySQL container
+
+Start the MySQL container and mount the daytrader.sql (found in the Git repository in db/ directory). This will start
+a MySQL container with an empty "tradedb" database.
 ```sh
-$ docker run -v <some host directory>:/usr/src/app/db/ -P -d my-django-app
+$ docker run -d -P -v <path to daytrader.sql>:/docker-entrypoint-initdb.d/daytrader.sql -e MYSQL_ROOT_PASSWORD=mysql mysql:latest
 ```
 
-Start the my-django-app server with a pre-existing SQLite3 database. This time, mount the db.sqlite3 SQLite3 file from the host.
+If you want to retain the MySQL DB changes even after the container is killed/removed, you can map a host directory into the container's
+directory corresponding to the MySQL DB.
+
+### Starting the Geronimo application server
+
+When the Geronimo application server starts, it needs to know where the hostname/IP and port where MySQL is listening on.
+  - MYSQL_IP - this can be host or container IP. If you are using bridge networking and give the container IP/PORT, note that both containers need to run on the same host. If you are using host IP/PORT, it doesn't matter if you are using bridge or overlay networking.
+  - MYSQL_PORT - The corresponding host/container port.
 ```sh
-$ docker run -v <some host directory>/db.sqlite3:/usr/src/app/db/db.sqlite3 -P -d my-django-app
+$ docker run -d -P -e MYSQL_IP=<host or container hostname/IP> -e MYSQL_PORT=<host or container port> geronimo_app geronimo
 ```
 
-### Start App with MySQL DB
-You can start the mysql container with no existing mySQL DB. But you need to provide a insput schema file. To use GSE Dashboard app, attach the schema SQL file that is available in Git.
-Then, start the my-django-app server and provide the following environment variables:
-  - MYSQL_DATABASE - DB name
-  - MYSQL_ROOT_PASSWORD
-  - TCP_ADDR - this can be host or container IP. If you are using bridge networking and give the container IP/PORT, note that both containers need to run on the same host. If you are using host IP/PORT, it doesn't matter if you are using bridge or overlay networking.
-  - TCP_PORT - The corresponding host/container port.
-```sh
-$ docker run -v <Schema file location>:/docker-entrypoint-initdb.d/dashboard_my_schema.sql -e MYSQL_DATABASE=mydashboard -e MYSQL_ROOT_PASSWORD=<password> -d mysql:latest
-$ docker run -e MYSQL_DATABASE=mydashboard -e MYSQL_ROOT_PASSWORD=<password> -e TCP_ADDR=<host or container IP> -e TCP_PORT=<host or container port> -P -d my-django-app
-```
-In the above approach, the mysql DB exists only for the duration that the container is alive.
+### Starting the Geronimo web server
 
-You can also start the mysql container with no existing DB, but map a host directory into the container  so that the DB lives even after the mysql container is stopped/killed.
+When the Geronimo web server starts, it needs to know where the hostname/IP and port where Geronimo application is listening on.
+  - APP_IP - this can be host or container IP. If you are using bridge networking and give the container IP/PORT, note that both containers need to run on the same host. If you are using host IP/PORT, it doesn't matter if you are using bridge or overlay networking.
+  - APP_PORT - The corresponding host/container port.
 ```sh
-$ docker run -v <Schema file location>:/docker-entrypoint-initdb.d/dashboard_my_schema.sql -v /my/data/directory:/var/lib/mysql -e MYSQL_DATABASE=mydashboard -e MYSQL_ROOT_PASSWORD=<password> -d mysql:latest
-$ docker run -e MYSQL_DATABASE=mydashboard -e MYSQL_ROOT_PASSWORD=<password> -e TCP_ADDR=<host or container IP> -e TCP_PORT=<host or container port> -P -d my-django-app
-```
-You can also start the mysql container with an already existing DB. Since we are again mapping a host directory into the container, the updated data will live even after the mysql container is stopped/killed.
-```sh
-$ docker run -v /my/data/directory:/var/lib/mysql -e MYSQL_DATABASE=mydashboard -e MYSQL_ROOT_PASSWORD=<password> -d mysql:latest
-$ docker run -e MYSQL_DATABASE=mydashboard -e MYSQL_ROOT_PASSWORD=<password> -e TCP_ADDR=<host or container IP> -e TCP_PORT=<host or container port> -P -d my-django-app
+$ docker run -d -P -e APP_IP=<host or container hostname/IP> -e APP_PORT=<host or container port> geronimo_web webserver
 ```
 
 ### Accessing the application
-For each case above, once the container starts running, check the host port that is mapped to the container's 8000 port.
-Then use "http://host-ip:host-mapped-port/home" URL to access the tool.
+Access the application pointing your browser to http://WEB_HOST:WEB_PORT/daytrader, where:
+  - WEB_HOST is the hostname/IP of the server where the web container runs.
+  - WEB_PORT is the host-port mapped to the port 80 of the web container.
 
 ### Todos
 
- - Make it work with a NOSQL DB
- - Fix threshold errors
-
-
+ - Multiple web servers sitting behind a load balance (ha-proxy)
+ - Docker compose file (or DAB for docker 1.12) for all three containers.
