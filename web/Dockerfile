@@ -18,5 +18,3 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["webserver"]
 
 EXPOSE 80
-EXPOSE 443
-
