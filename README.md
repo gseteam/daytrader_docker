@@ -1,4 +1,7 @@
 DayTrader - Dockerized
+======================
+
+![Daytrader](/images/daytrader.jpg?raw=true "Daytrader")
 
 DayTrader is benchmark application built around the paradigm of an online stock trading system.
 Originally developed by IBM as the Trade Performance Benchmark Sample, DayTrader was donated to
