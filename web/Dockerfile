@@ -1,5 +1,8 @@
 FROM ubuntu:16.04
 
+ENV http_proxy=http://web-proxy.cup.hp.com:8080
+ENV https_proxy=https://web-proxy.cup.hp.com:8080
+
 RUN apt-get update 
 RUN apt-get install apache2 -y
 
