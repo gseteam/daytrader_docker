@@ -44,13 +44,13 @@ $ cd appserver/
 $ docker build -t geronimo_app .
 ```
 
-NOTE:
+#### NOTE
 
-If you are sitting behind corporate Proxy, you have to add proxy environment variable in both(Web layer and Application layer) Dockerfile.
-
-Example:
+If you are sitting behind corporate Proxy, you have to add proxy environment variable in both(Web layer and Application layer) Dockerfile. For example:
+```sh
 ENV http_proxy=http://web-proxy.cup.hp.com:8080
 ENV https_proxy=https://web-proxy.cup.hp.com:8080
+```
 
 ### Running the Daytrader application
 
