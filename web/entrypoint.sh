@@ -12,8 +12,8 @@ if [ "$1" = 'webserver' ]; then
 		exit 1
 	fi
 
-	sed -i 's/HOSTNAME/$APP_IP/' /etc/apache2/workers.properties
-	sed -i 's/PORT/$APP_PORT/'   /etc/apache2/workers.properties
+	sed -i "s/HOSTNAME/$APP_IP/" /etc/apache2/workers.properties
+	sed -i "s/PORT/$APP_PORT/"   /etc/apache2/workers.properties
 
 	file="/etc/apache2/sites-available/000-default.conf.orig"
 	#### Back up the configuration file of Web server.
